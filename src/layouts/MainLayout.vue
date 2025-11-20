@@ -30,6 +30,12 @@ import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink
 
 const linksList: EssentialLinkProps[] = [
   {
+    title: 'healthy',
+    caption: 'Calorie Tacking',
+    icon: 'favorite',
+    link: 'http://localhost:9000/#/calorie',
+  },
+  {
     title: 'Docs',
     caption: 'quasar.dev',
     icon: 'school',
