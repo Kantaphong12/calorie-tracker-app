@@ -63,7 +63,7 @@ function deleteItem(index: number) {
 
 <template>
   <q-table
-    :title="`รายการอาหารที่กินchildren`"
+    :title="`รายการอาหารที่กิน`"
     :rows="props.toDayCalsData"
     :columns="columns"
     row-key="foodname"
