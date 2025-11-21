@@ -7,7 +7,7 @@ import { ref } from 'vue';
 const props = defineProps<{
   toDayCalsData: CalorieItem[];
 }>();
-console.log('toDayCalsData', props.toDayCalsData);
+// console.log('toDayCalsData', props.toDayCalsData);
 
 const columns: Column[] = [
   {

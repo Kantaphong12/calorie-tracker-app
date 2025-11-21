@@ -33,7 +33,7 @@ const linksList: EssentialLinkProps[] = [
     title: 'healthy',
     caption: 'Calorie Tacking',
     icon: 'favorite',
-    link: 'https://calorie.surindev.com/#/calorie',
+    link: '#/calorie', // เพิ่ม # นำหน้า
   },
   {
     title: 'Docs',
