@@ -277,7 +277,7 @@ function handleDataUpdate() {
       <div class="col-sm-4" style="padding: 15px">
         <q-card class="q-pa-md shadow-2 rounded-borders" style="max-width:">
           <q-card-section class="text-center">
-            <div class="text-h5 text-primary">Calorie Tracker edit</div>
+            <div class="text-h5 text-primary">Calorie Tracker</div>
             <div class="row justify-center items-center q-mt-sm">
               <div class="text-subtitle2 text-grey q-mr-sm">บันทึกแคลอรีประจำวัน</div>
               <q-input
