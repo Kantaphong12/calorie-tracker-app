@@ -85,6 +85,7 @@ async function submitForm() {
       }
       loading.value = false;
     } else {
+      alert('Login failed');
       const responseData = await response.json();
       console.log(responseData);
       localStorage.setItem('authToken', responseData.token); // save token
