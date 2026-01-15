@@ -19,11 +19,6 @@ const gender = ref('male');
 
 function toggleMode() {
   isRegisterMode.value = !isRegisterMode.value;
-  // Reset form fields when toggling
-  // fullName.value = '';
-  // email.value = '';
-  // password.value = '';
-  // confirmPassword.value = '';
 }
 async function submitForm() {
   loading.value = true;
@@ -44,7 +39,6 @@ async function submitForm() {
         method: 'post',
         headers: {
           'Content-Type': 'application/json',
-          
         },
         body: JSON.stringify(payload),
       });
