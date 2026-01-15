@@ -72,6 +72,7 @@ async function submitForm() {
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
+      alert('Login failed');
       const errData = await response.text();
       if (errData) {
         Notify.create({
