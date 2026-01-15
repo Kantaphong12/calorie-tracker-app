@@ -63,6 +63,7 @@ async function submitForm() {
       email: email.value,
       password: password.value,
     };
+    alert('เข้าโหมด Login');
     const response = await fetch(`${API_BASE_URL}/api/Login`, {
       method: 'post',
       headers: {
