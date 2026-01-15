@@ -4,7 +4,9 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
+
     children: [{ path: '', component: () => import('src/pages/Calorie/CalorieForm.vue') }],
+    meta: { requiresAuth: true },
   },
   {
     path: '/login', // login route
