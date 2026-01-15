@@ -16,7 +16,8 @@ import type CalorieItem from 'src/types/healthy';
 import type { FoodItem, listNameFood } from 'src/types/healthy';
 import { watch, computed, onMounted, ref } from 'vue';
 // const API_BASE_URL = 'http://localhost:5000';
-const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
+// const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string; // --- IGNORE ---
 const getCurrentDate = new Date().toISOString().split('T')[0]?.replaceAll('-', '/');
 const input = ref<CalorieItem>({
   user_id: Number(localStorage.getItem('UserID')),

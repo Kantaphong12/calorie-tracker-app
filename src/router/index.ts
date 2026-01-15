@@ -45,22 +45,22 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
     // --- 🔍 DEBUG LOG: ขั้นตอนการตัดสินใจ 1-2-3-4 ---
-    console.log(`%c 👮 Router Guard: ${to.path} `, 'background: #222; color: #bada55');
-    console.log(`   1. ต้องการ Login ไหม? : ${requiresAuth}`);
-    console.log(`   2. มี Token ไหม?      : ${!!token}`);
+    // console.log(`%c 👮 Router Guard: ${to.path} `, 'background: #222; color: #bada55');
+    // console.log(`   1. ต้องการ Login ไหม? : ${requiresAuth}`);
+    // console.log(`   2. มี Token ไหม?      : ${!!token}`);
 
     // 3. เริ่มตัดสินใจ
     if (requiresAuth && !token) {
       // Case A: จะเข้าห้องล็อค แต่ไม่มีกุญแจ -> ถีบไปหน้า Login
-      console.log('   🛑 Case A: Access Denied -> ไป Login ซะ');
+      // console.log('   🛑 Case A: Access Denied -> ไป Login ซะ');
       next('/login');
     } else if (to.path === '/login' && token) {
       // Case B: มีกุญแจแล้ว จะไปหน้า Login อีกทำไม -> ส่งไปหน้าแรก (UX ที่ดี)
-      console.log('   ⚠️ Case B: Login อยู่แล้ว -> ไปหน้าแรก');
+      // console.log('   ⚠️ Case B: Login อยู่แล้ว -> ไปหน้าแรก');
       next('/');
     } else {
       // Case C: ผ่านตลอด (ห้องไม่ได้ล็อค หรือ มีกุญแจแล้ว)
-      console.log('   ✅ Case C: Access Granted -> เชิญครับ');
+      // console.log('   ✅ Case C: Access Granted -> เชิญครับ');
       next(); // อนุญาตให้ไปต่อ
     }
   });

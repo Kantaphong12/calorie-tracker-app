@@ -4,7 +4,8 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 // const API_BASE_URL = 'http://localhost:5000';
-const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
+// const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string; // --- IGNORE ---
 const isRegisterMode = ref(false);
 const fullName = ref('');
 const email = ref('');
