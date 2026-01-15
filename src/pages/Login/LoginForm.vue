@@ -3,7 +3,8 @@ import { Notify } from 'quasar';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
-const API_BASE_URL = 'http://localhost:5000';
+// const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://calorie.surindev.com/'; //deploy
 const isRegisterMode = ref(false);
 const fullName = ref('กันตพงศ์ แก้วเกษ');
 const email = ref('kantaphong@gmail.com');
