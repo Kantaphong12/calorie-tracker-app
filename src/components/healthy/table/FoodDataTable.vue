@@ -43,21 +43,34 @@ const columns: Column[] = [
 ];
 const edittingId = ref<number | null>(null);
 const emit = defineEmits<{
-  (e: 'update:data'): void;
+  (e: 'update:data', rowData: CalorieItem): void;
   (e: 'delete:item', index: number): void;
+  (e: 'deleteid:id', index: number): void;
 }>();
-function confirmUpdate() {
-  emit('update:data');
+function confirmUpdate(rowData: CalorieItem) {
+  emit('update:data', rowData);
+  console.log('calorie by FoodDataTable', rowData.calories);
 }
 function startEdit(index: number) {
   edittingId.value = index;
 }
-function confirmEdit() {
+function confirmEdit(rowData: CalorieItem) {
   edittingId.value = null;
-  emit('update:data');
+  // console.log('rowData', rowData);
+  emit('update:data', rowData);
 }
-function deleteItem(index: number) {
+function deleteItem(index: number, id: number) {
+  emit('deleteid:id', id);
   emit('delete:item', index);
+}
+function onPopupSave(val: string | number, row: CalorieItem, field: string) {
+  //เช็คของก่อนส่งไปอัพเดท
+  let finalVal = val;
+  if (field !== 'foodname' && typeof finalVal === 'string') {
+    finalVal = Number(val) || 0;
+  }
+  const updatedRow = { ...row, [field]: finalVal };
+  confirmUpdate(updatedRow);
 }
 </script>
 
@@ -66,7 +79,7 @@ function deleteItem(index: number) {
     :title="`รายการอาหารที่กิน`"
     :rows="props.toDayCalsData"
     :columns="columns"
-    row-key="foodname"
+    row-key="ID"
     dense
   >
     <template v-slot:body="rowprops">
@@ -85,7 +98,7 @@ function deleteItem(index: number) {
               title="Update calories"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'foodname')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -105,7 +118,7 @@ function deleteItem(index: number) {
               title="Update calories"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'calories')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -122,10 +135,10 @@ function deleteItem(index: number) {
             >{{ rowprops.row.carbs }}
             <q-popup-edit
               v-model="rowprops.row.carbs"
-              title="Update calories"
+              title="Update carbs"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'carbs')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -145,7 +158,7 @@ function deleteItem(index: number) {
               title="Update protein"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'protein')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -165,7 +178,7 @@ function deleteItem(index: number) {
               title="Update fat"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'fat')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -185,7 +198,7 @@ function deleteItem(index: number) {
               title="Update leucine"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'leucine')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -205,7 +218,7 @@ function deleteItem(index: number) {
               title="Update magnesium"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'magnesium')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -225,7 +238,7 @@ function deleteItem(index: number) {
               title="Update zinc"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'zinc')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
@@ -245,14 +258,21 @@ function deleteItem(index: number) {
               title="Update serving_size"
               buttons
               v-slot="scope"
-              @save="confirmUpdate()"
+              @save="(val) => onPopupSave(val, rowprops.row, 'serving_size')"
             >
               <q-input type="text" v-model="scope.value" dense autofocus />
             </q-popup-edit>
           </span>
         </q-td>
         <q-td v-if="edittingId === rowprops.rowIndex"
-          ><q-btn size="sm" color="teal" dense round icon="check" @click="confirmEdit()" />
+          ><q-btn
+            size="sm"
+            color="teal"
+            dense
+            round
+            icon="check"
+            @click="confirmEdit(rowprops.row)"
+          />
         </q-td>
         <q-td v-else
           ><q-btn
@@ -271,7 +291,7 @@ function deleteItem(index: number) {
             color="negative"
             icon="delete"
             :title="`ลบ${rowprops.row.foodname}จากรายการ`"
-            @click="deleteItem(rowprops.rowIndex)"
+            @click="deleteItem(rowprops.rowIndex, rowprops.row.ID)"
             dense
             round
           />

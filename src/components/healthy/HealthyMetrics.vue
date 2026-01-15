@@ -72,6 +72,7 @@ function editbody_fat() {
   body_fatStatus.value = true;
 }
 function editHeight() {
+  // alert('test');
   heightStatus.value = true;
 }
 //  :model-value="props.weight"         <!-- รับค่า -->

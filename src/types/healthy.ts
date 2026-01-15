@@ -1,4 +1,6 @@
 export default interface CalorieItem {
+  ID?: number; //optional
+  user_id: number | undefined;
   date: string | undefined;
   foodname: string;
   calories: number | null;
@@ -57,4 +59,17 @@ export type Column = {
 export interface listNameFood {
   id: number;
   name: string;
+}
+export interface UserCals {
+  ID: number | null;
+  Name: string | null;
+  Email: string | null;
+  Password: string | null;
+  Age: number | null;
+  Fat: string | number | null;
+  Weight: string | number | null;
+  Height: number | null;
+  Gender: string | null;
+  ActivityLevel: number | null;
+  TargetCals: number | null;
 }

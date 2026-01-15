@@ -15,9 +15,10 @@ import { debounce } from 'quasar';
 import type CalorieItem from 'src/types/healthy';
 import type { FoodItem, listNameFood } from 'src/types/healthy';
 import { watch, computed, onMounted, ref } from 'vue';
-
+const API_BASE_URL = 'http://localhost:5000';
 const getCurrentDate = new Date().toISOString().split('T')[0]?.replaceAll('-', '/');
 const input = ref<CalorieItem>({
+  user_id: Number(localStorage.getItem('UserID')),
   date: getCurrentDate,
   foodname: '',
   calories: null,
@@ -307,14 +308,31 @@ function onSubmitNewFood(input: CalorieItem) {
 const emit = defineEmits<{
   'food-added': [item: CalorieItem];
 }>();
-function onSubmit() {
+async function onSubmit() {
   if (!inputValid.value) {
     return;
   }
   if (caloriesData.value.push({ ...input.value })) {
     //ถ้าเพิ่มรายการอาหารเข้า array สำเร็จ
+    console.log('ข้อมูลที่ submit', input.value);
+    const jsonString = JSON.stringify([input.value]);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/InsertCals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: localStorage.getItem('authToken') || '',
+        },
+        body: jsonString,
+      });
+      console.log('📡 Response:', response);
+    } catch (error) {
+      console.error('error', error);
+    }
+
     localStorage.setItem('caloriesData', JSON.stringify(caloriesData.value)); //เพิ่มเข้าความจำ เบราเซอร์ด้วย
-    loadFromLocalStorage(); //Update ข้อมูลจากความจำเบราเซอร์
+    // loadFromLocalStorage(); //Update ข้อมูลจากความจำเบราเซอร์
     // ส่ง emit ไป parent พร้อมข้อมูลที่เพิ่ม
     emit('food-added', { ...input.value });
     //  ↑        ↑            ↑

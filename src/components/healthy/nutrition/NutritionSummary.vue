@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type CalorieItem from 'src/types/healthy';
-import { computed, ref } from 'vue';
-const weight = ref<number>(65);
+import { computed } from 'vue';
 
 // หา TDEE
 // คำนวณ Lean Body Mass (LBM)
 const lbm = computed(() => {
-  return weight.value * (1 - props.body_fat / 100);
+  const fat = Number(props.body_fat) || 0;
+  return Number(props.weight) * (1 - fat / 100);
 });
 // คำนวณ BMR ด้วย Katch-McArdle Formula
 const bmr = computed(() => {
@@ -14,15 +14,16 @@ const bmr = computed(() => {
 });
 // คำนวณ TDEE
 const tdee = computed(() => {
-  return (bmr.value * props.activityLevel).toFixed(2);
+  const activityLevel = Number(props.activityLevel) || 0;
+  return (bmr.value * activityLevel).toFixed(2);
 });
 //
 const props = withDefaults(
   defineProps<{
     // tdee: string | null;
-    // weight: number | null;
-    activityLevel: number;
-    body_fat: number;
+    weight: number | string;
+    activityLevel: number | string;
+    body_fat: number | string;
     toDayCalsData: CalorieItem[];
   }>(),
   {},
@@ -70,46 +71,43 @@ const nutritionTotals = computed(() => {
       <div class="col-4">
         <div class="col-4">
           <q-badge
-            :label="`Protein: ${nutritionTotals.protein.toFixed(2)} g : ${(nutritionTotals.protein * 4).toFixed(2)} cals คิดเป็น ${((nutritionTotals.protein / (weight * 2)) * 100).toFixed(1)}% `"
+            :label="`Protein: ${nutritionTotals.protein.toFixed(2)} g : ${(nutritionTotals.protein * 4).toFixed(2)} cals คิดเป็น ${((nutritionTotals.protein / (Number(props.weight) * 2)) * 100).toFixed(1)}% `"
             color="blue-3"
             text-color="black"
             class="q-mr-sm cursor-pointer"
           >
             <q-tooltip>
-              โปรตีนแนะนำ 1.6–2.2 g/กก.น้ำหนักตัว สำหรับ {{ weight }} กก. → {{ weight * 1.6 }}–{{
-                weight * 2
-              }}
-              g/วัน ( เราใช้ค่ากลาง 2 )
+              โปรตีนแนะนำ 1.6–2.2 g/กก.น้ำหนักตัว สำหรับ {{ Number(props.weight) }} กก. →
+              {{ Number(props.weight) * 1.6 }}–{{ Number(props.weight) * 2 }}
+              g/วัน ( โปรแกรมใช้ค่า 2 )
             </q-tooltip>
           </q-badge>
         </div>
         <div class="col-4">
           <q-badge
-            :label="`Fat: ${nutritionTotals.fat} g : ${(nutritionTotals.fat * 9).toFixed(2)} cals คิดเป็น ${((nutritionTotals.fat / (weight * 0.8)) * 100).toFixed(1)}% `"
+            :label="`Fat: ${nutritionTotals.fat} g : ${(nutritionTotals.fat * 9).toFixed(2)} cals คิดเป็น ${((nutritionTotals.fat / (Number(props.weight) * 0.8)) * 100).toFixed(1)}% `"
             color="amber-4"
             text-color="black"
             class="q-mr-sm cursor-pointer"
           >
             <q-tooltip>
-              ไขมันประมาณ 0.6–1 g/กก.น้ำหนักตัว {{ weight }} กก. → {{ weight * 0.8 }}–{{
-                weight * 1
-              }}
-              g/วัน ( เราใช้ค่ากลาง 0.8 )
+              ไขมันประมาณ 0.6–1 g/กก.น้ำหนักตัว {{ Number(props.weight) }} กก. →
+              {{ Number(props.weight) * 0.8 }}–{{ Number(props.weight) * 1 }}
+              g/วัน ( โปรแกรมใช้ค่า 0.8 )
             </q-tooltip>
           </q-badge>
         </div>
         <div class="col-4">
           <q-badge
-            :label="`Carb: ${nutritionTotals.carbs} g : ${(nutritionTotals.carbs * 5).toFixed(2)} cals คิดเป็น ${((nutritionTotals.carbs / (weight * 5)) * 100).toFixed(1)}% `"
+            :label="`Carb: ${nutritionTotals.carbs} g : ${(nutritionTotals.carbs * 5).toFixed(2)} cals คิดเป็น ${((nutritionTotals.carbs / (Number(props.weight) * 5)) * 100).toFixed(1)}% `"
             color="green-3"
             text-color="black"
             class="q-mr-sm cursor-pointer"
           >
             <q-tooltip>
-              คาร์บแนะนำ ~4–6 g/กก. สำหรับผู้สร้างกล้าม {{ weight }} กก. → {{ weight * 4 }}–{{
-                weight * 6
-              }}
-              g/วัน ( เราใช้ค่ากลาง 5 )
+              คาร์บแนะนำ ~4–6 g/กก. สำหรับผู้สร้างกล้าม {{ Number(props.weight) }} กก. →
+              {{ Number(props.weight) * 4 }}–{{ Number(props.weight) * 6 }}
+              g/วัน ( โปรแกรมใช้ค่า 5 )
             </q-tooltip>
           </q-badge>
         </div>
@@ -126,8 +124,8 @@ const nutritionTotals = computed(() => {
               class="q-mr-sm cursor-pointer"
             >
               <q-tooltip>
-                ลูซีน 2.5–3 g ต่อมื้อโปรตีน วันละ 6–9 g เพื่อกระตุ้นการสร้างกล้าม (MPS) ( เราใช้ค่า
-                9 )
+                ลูซีน 2.5–3 g ต่อมื้อโปรตีน วันละ 6–9 g เพื่อกระตุ้นการสร้างกล้าม (MPS) (
+                โปรแกรมใช้ค่า 9 )
               </q-tooltip>
             </q-badge>
           </div>
@@ -140,7 +138,7 @@ const nutritionTotals = computed(() => {
             >
               <q-tooltip>
                 ซิงค์แนะนำ 12–15 mg/วัน(ชาย) 9-12 mg/วัน(หญิง) สำคัญต่อระบบภูมิคุ้มกัน
-                และฮอร์โมนเพศชาย ( เราใช้ค่า 15 )
+                และฮอร์โมนเพศชาย ( โปรแกรมใช้ค่า 15 )
               </q-tooltip>
             </q-badge>
           </div>
@@ -153,7 +151,7 @@ const nutritionTotals = computed(() => {
             >
               <q-tooltip>
                 แมกนีเซียมแนะนำ ~450–500 mg/วัน(ชาย) 350–400 mg/วัน(หญิง) ช่วยการฟื้นฟู กล้ามเนื้อ
-                และระบบประสาท ( เราใช้ค่า 500 )
+                และระบบประสาท ( โปรแกรมใช้ค่า 500 )
               </q-tooltip>
             </q-badge>
           </div>

@@ -11,10 +11,10 @@
 }
 </style>
 <script setup lang="ts">
-import { debounce } from 'quasar';
+import { debounce, Notify } from 'quasar';
 import type CalorieItem from '../../types/healthy.ts';
 import { ref, watch, onMounted } from 'vue';
-import type { Column, FoodItem, listNameFood, RowData } from '../../types/healthy.ts';
+import type { Column, FoodItem, listNameFood, RowData, UserCals } from '../../types/healthy.ts';
 import HealthyMetrics from 'src/components/healthy/HealthyMetrics.vue';
 import NutritionSummary from 'src/components/healthy/nutrition/NutritionSummary.vue';
 import useFoodDatabase from 'src/components/healthy/compossables/useFoodDatabase.vue';
@@ -25,23 +25,24 @@ const getCurrentDate = new Date().toISOString().split('T')[0]?.replaceAll('-', '
 
 const caloriesData = ref<CalorieItem[]>([]); //calories ของทุกวันไว้ทำระบบแยกวันต่อ
 function toDayData(filterDate: string | undefined) {
+  // alert(filterDate);
   //แคลของวันนี้
   if (filterDate) {
-    // alert(formattedDate);
-    console.log(
-      (toDayCalsData.value = caloriesData.value.filter((item) => item.date === filterDate)),
-    );
+    // console.log(
+    //   (toDayCalsData.value = caloriesData.value.filter((item) => item.date === filterDate)),
+    // );
     return (toDayCalsData.value = caloriesData.value.filter((item) => item.date === filterDate));
   }
-  console.log(
-    (toDayCalsData.value = caloriesData.value.filter((item) => item.date === filterDate)),
-  );
+  // console.log(
+  //   (toDayCalsData.value = caloriesData.value.filter((item) => item.date === filterDate)),
+  // );
   return (toDayCalsData.value = caloriesData.value.filter((item) => item.date === getCurrentDate));
   // console.log('toDayCalsData', toDayCalsData);
 }
 const toDayCalsData = ref<CalorieItem[]>([]);
 
 const input = ref<CalorieItem>({
+  user_id: Number(localStorage.getItem('UserID')),
   date: getCurrentDate,
   foodname: '',
   calories: null,
@@ -182,12 +183,34 @@ function removeDuplicatesByIdAndName<T extends { id: number | string; name: stri
 }
 
 const dataFoodAPI = ref<FoodItem[]>([]);
-
+const API_BASE_URL = 'http://localhost:5000';
 const loading = ref(false);
 const loadData = async () => {
   try {
     loading.value = true;
-    const response = await fetch('/data/clean_food_menu.json');
+    const token = localStorage.getItem('authToken');
+    const responseAPI = await fetch(
+      `${API_BASE_URL}/api/GetCals/${localStorage.getItem('UserID')}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // เพิ่ม header สำหรับ token
+        },
+      },
+    ); //ดึงข้อมูลแคลอรีจาก API
+    const responseUserAPI = await fetch(
+      `${API_BASE_URL}/api/users/${localStorage.getItem('UserID')}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // เพิ่ม header สำหรับ token
+        },
+      },
+    ); //ดึงข้อมูล User จาก API
+    // const responseUserAPI = await fetch(`${API_BASE_URL}/api/GetUser`); //ดึงข้อมูลแคลอรีจาก API
+    const response = await fetch('/data/clean_food_menu.json'); // ดึงข้อมูลรายการอาหารจากไฟล์ JSON
     if (response.ok) {
       dataFoodAPI.value = await response.json();
       const newArr = removeDuplicatesByIdAndName(dataFoodAPI.value); //จัดการกับรายการซ้ำก่อน
@@ -195,17 +218,61 @@ const loadData = async () => {
     } else {
       alert('ไม่สามารถโหลดไฟล์ได้');
     }
+    if (responseAPI.ok) {
+      //ถ้าดึงข้อมูลแคลอรีจาก API สำเร็จ
+      caloriesData.value = await responseAPI.json();
+      // console.log('caloriesData.value', caloriesData.value);
+      toDayData(input.value.date);
+    } else {
+      //ถ้าดึงข้อมูลแคลอรีจาก API ไม่สำเร็จ
+      Notify.create({
+        type: 'negative',
+        position: 'top-right',
+        message: `Login Failed! ${await responseAPI.text()}`,
+      });
+      localStorage.removeItem('authToken'); // ลบ token ที่ไม่ถูกต้อง
+    }
+    if (responseUserAPI.ok) {
+      //ถ้าดึงข้อมูล User จาก API สำเร็จ
+
+      const UserData = await responseUserAPI.json();
+      // console.log(UserData);
+      fullName.value = UserData[0].name;
+      UserCals.value.Weight = UserData[0].weight;
+      UserCals.value.ID = UserData[0].ID;
+      UserCals.value.Height = UserData[0].height;
+      UserCals.value.Age = UserData[0].age;
+      UserCals.value.Gender = UserData[0].gender;
+      UserCals.value.ActivityLevel = UserData[0].activity_level;
+      UserCals.value.Fat = UserData[0].fat;
+      UserCals.value.TargetCals = UserData[0].target_cals;
+      UserCals.value.Name = UserData[0].name;
+      UserCals.value.Email = UserData[0].email;
+      UserCals.value.Password = UserData[0].password;
+      // height.value = UserData[0].height;
+      // body_fat.value = Number(UserData[0].body_fat);
+      activityLevel.value = UserData[0].activity_level;
+      console.log('UserData', UserData);
+      console.log('UserCals', UserCals);
+    }
   } catch (error) {
     console.error('เกิดข้อผิดพลาด:', error);
   } finally {
     loading.value = false;
   }
 };
+const isLogin = !!localStorage.getItem('authToken'); //ตรวจสอบการล็อกอิน
+function onLogout() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('UserID');
+  window.location.reload(); // รีเฟรชหน้าเพื่ออัปเดตสถานะการล็อกอิน
+}
+
 onMounted(async () => {
   try {
     await loadData();
-    loadFromLocalStorage();
-    toDayData('');
+    // loadFromLocalStorage();
+    toDayData(input.value.date);
   } catch (error) {
     console.error('เกิดข้อผิดพลาดใน onMounted:', error);
   }
@@ -218,26 +285,95 @@ function deleteItem(index: number) {
   //   foods.splice(1, 1);  // ลบตำแหน่งที่ 1, ลบ 1 ตัว
   // foods.splice(1, 2);  // ลบตำแหน่งที่ 1, ลบ 2 ตัว ไอ้ตัวถัดไปด้วย
   // foods.splice(1, 0, 'กะเพรา');  // ตำแหน่งที่ 1, ลบ 0 ตัว, เพิ่ม 'กะเพรา'
-  caloriesData.value.splice(index, 1);
+  // caloriesData.value.splice(index, 1);
+  console.log(index);
+
   localStorage.setItem('caloriesData', JSON.stringify(caloriesData.value)); //เซ็ทความจำ browser ตาม array
   loadFromLocalStorage();
 }
+async function deleteID(id: number) {
+  const index = caloriesData.value.findIndex((item) => item.ID === id); // หา index จาก id ที่ส่งมา
+  if (index !== -1) {
+    // ถ้าพบไอดี
+    caloriesData.value.splice(index, 1); // ลบข้อมูลจาก array
+  } else {
+    // ถ้าไม่พบไอดี
+    await loadData(); // โหลดข้อมูลใหม่
+    return;
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/delete/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('📡 Response:', response);
+    await loadData();
+  } catch (error) {
+    console.error('error', error);
+  }
+}
 
-const weight = ref<number>(65);
+const UserCals = ref<UserCals>({
+  ID: null,
+  Name: null,
+  Email: null,
+  Password: null,
+  Age: null,
+  Weight: 65,
+  Height: 170,
+  Fat: null,
+  Gender: null,
+  ActivityLevel: 1.725,
+  TargetCals: null,
+});
 
-const height = ref<number>(170);
+// const weight = ref<number>(65);
+async function updateUser(UserCals: UserCals) {
+  //ไม่จำเป็นต้องส่งทุกค่าไปเพราะเราไปดึงข้อมูลจาก ID ใน database อยู่แล้ว แล้วก็ update เฉพาะ field ที่เปลี่ยน
+  //เพราะงั้นปรับใหม่เอาพวก email password ออกเพราะไม่จำเป็นต้อง update
+  console.log('ActivityLevel', UserCals.ActivityLevel);
 
-const body_fat = ref<number>(15);
+  const payload = {
+    ID: UserCals.ID,
+    name: UserCals.Name,
+    email: UserCals.Email,
+    password: UserCals.Password,
+    gender: UserCals.Gender,
+    fat: Number(UserCals.Fat),
+    age: Number(UserCals.Age),
+    weight: Number(UserCals.Weight),
+    height: Number(UserCals.Height),
+    activity_level: Number(UserCals.ActivityLevel),
+    target_cals: Number(UserCals.TargetCals),
+  };
+  try {
+    await fetch(`${API_BASE_URL}/api/updateUserCals/${UserCals.ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json', // กำหนดประเภทของข้อมูลที่ส่งไป
+        Authorization: `${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload), // แปลงข้อมูลเป็น JSON string
+    });
+  } catch (error) {
+    console.error('error', error);
+  }
+}
+
+// const height = ref<number>(170);
+const fullName = ref<string>('โปรดเข้าสู่ระบบ');
 
 // หา TDEE
 const activityLevel = ref<number>(1.725); // ค่าเริ่มต้น
 
 // บันทุกข้อมูลลง localstorage
-const saveToLacalStorage = debounce(() => {
-  localStorage.setItem('customFoods', JSON.stringify(customFoods.value));
-  localStorage.setItem('caloriesData', JSON.stringify(caloriesData.value));
-  loadFromLocalStorage(); //โหลดข้อมูลที่พึ่งเพิ่มไป
-}, 10);
+// const saveToLacalStorage = debounce(() => {
+//   localStorage.setItem('customFoods', JSON.stringify(customFoods.value));
+//   localStorage.setItem('caloriesData', JSON.stringify(caloriesData.value));
+//   loadFromLocalStorage(); //โหลดข้อมูลที่พึ่งเพิ่มไป
+// }, 10);
 // เพิ่มตัวแปรสำหรับเก็บอาหารที่ user เพิ่มเอง
 const customFoods = ref<FoodItem[]>([]);
 
@@ -253,7 +389,6 @@ const loadFromLocalStorage = () => {
   }
   if (savedCaloriesData) {
     caloriesData.value = JSON.parse(savedCaloriesData); //caloriesData ที่เก็บใน localStorage แทน array
-    toDayData(input.value.date);
     // console.log('caloriesData', caloriesData);
   }
 };
@@ -263,12 +398,39 @@ watch(
     toDayData(input.value.date);
   },
 );
-const handleFoodAdded = (newFoodItem: CalorieItem) => {
+const handleFoodAdded = async (newFoodItem: CalorieItem) => {
   console.log('รับข้อมูลจาก child:', newFoodItem);
-  loadFromLocalStorage();
+  await loadData();
 };
-function handleDataUpdate() {
-  saveToLacalStorage();
+async function handleDataUpdate(rowData: CalorieItem) {
+  console.log('calorie:', rowData.calories);
+  const payload = {
+    date: rowData.date,
+    foodname: rowData.foodname,
+    calories: Number(rowData.calories),
+    serving_size: Number(rowData.serving_size),
+    carbs: Number(rowData.carbs),
+    protein: Number(rowData.protein),
+    fat: Number(rowData.fat),
+    leucine: Number(rowData.leucine),
+    magnesium: Number(rowData.magnesium),
+    zinc: Number(rowData.zinc),
+  };
+  try {
+    // ส่งคำขอ PUT ไปยัง API เพื่ออัพเดทข้อมูล
+    await fetch(`${API_BASE_URL}/api/update/${rowData.ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json', // กำหนดประเภทของข้อมูลที่ส่งไป
+        Authorization: `${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload), // แปลงข้อมูลเป็น JSON string
+    });
+  } catch (error) {
+    // จัดการข้อผิดพลาด
+    console.error('error', error);
+  }
+  // await loadData();
 }
 </script>
 <template>
@@ -322,8 +484,9 @@ function handleDataUpdate() {
                 </q-avatar>
               </q-item-section>
               <NutritionSummary
-                :body_fat="body_fat"
-                :activity-level="activityLevel"
+                :weight="UserCals.Weight ?? 65"
+                :body_fat="UserCals.Fat ?? 0"
+                :activity-level="UserCals.ActivityLevel ?? 0"
                 :toDayCalsData="toDayCalsData"
               >
               </NutritionSummary>
@@ -350,26 +513,54 @@ function handleDataUpdate() {
           <FoodDataTable
             :toDayCalsData="toDayCalsData"
             :colum="columns"
-            @update:data="handleDataUpdate()"
+            @update:data="handleDataUpdate($event)"
             @delete:item="deleteItem"
+            @deleteid:id="deleteID"
           >
           </FoodDataTable>
         </q-card-section>
         <!-- </q-card> -->
 
-        <q-card class="my-card health-metrics-card" style="margin-top: 2rem" flat bordered>
+        <q-card
+          v-if="isLogin"
+          class="my-card health-metrics-card"
+          style="margin-top: 2rem"
+          flat
+          bordered
+        >
           <div class="text-center text-h6 text-weight-medium q-mb-md text-grey-8">
-            ข้อมูลสุขภาพของคุณ
+            ข้อมูลสุขภาพของคุณ {{ fullName }}
+            <q-btn
+              class="absolute-top-right q-mt-sm q-mr-sm"
+              flat
+              round
+              dense
+              icon="logout"
+              color="negative"
+              title="ออกจากระบบ"
+              @click="onLogout"
+            />
           </div>
-
+          <q-btn flat round dense icon="logout" color="white" :title="`ออกจากระบบ`" />
           <q-list class="row col-md-12">
             <HealthyMetrics
-              v-model:weight="weight"
-              v-model:height="height"
-              v-model:body_fat="body_fat"
-              v-model:activityLevel="activityLevel"
+              v-model:weight="UserCals.Weight"
+              v-model:height="UserCals.Height"
+              v-model:body_fat="UserCals.Fat"
+              v-model:activityLevel="UserCals.ActivityLevel"
+              @update:weight="updateUser(UserCals)"
+              @update:height="updateUser(UserCals)"
+              @update:body_fat="updateUser(UserCals)"
+              @update:activityLevel="updateUser(UserCals)"
             ></HealthyMetrics>
           </q-list>
+        </q-card>
+        <q-card v-else class="my-card health-metrics-card" style="margin-top: 2rem" flat bordered>
+          <q-card-section class="text-center">
+            <div class="text-h6 text-weight-medium text-grey-8">
+              กรุณาเข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพของคุณ
+            </div>
+          </q-card-section>
         </q-card>
       </div>
     </div>
