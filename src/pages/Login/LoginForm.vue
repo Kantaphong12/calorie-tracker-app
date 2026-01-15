@@ -63,7 +63,6 @@ async function submitForm() {
       email: email.value,
       password: password.value,
     };
-    alert('เข้าโหมด Login');
     const response = await fetch(`${API_BASE_URL}/api/Login`, {
       method: 'post',
       headers: {
@@ -72,7 +71,6 @@ async function submitForm() {
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      alert('Login failed');
       const errData = await response.text();
       if (errData) {
         Notify.create({
@@ -85,7 +83,6 @@ async function submitForm() {
       }
       loading.value = false;
     } else {
-      alert('Login failed');
       const responseData = await response.json();
       console.log(responseData);
       localStorage.setItem('authToken', responseData.token); // save token

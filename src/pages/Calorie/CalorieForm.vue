@@ -183,7 +183,8 @@ function removeDuplicatesByIdAndName<T extends { id: number | string; name: stri
 }
 
 const dataFoodAPI = ref<FoodItem[]>([]);
-const API_BASE_URL = 'http://localhost:5000';
+// const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
 const loading = ref(false);
 const loadData = async () => {
   try {
