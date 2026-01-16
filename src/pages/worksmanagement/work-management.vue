@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <q-page class="q-pa-md bg-grey-2">
     <div class="row justify-center">
       <div class="col-12 col-md-10">
@@ -391,4 +391,4 @@ const deleteTask = (id: number) => {
 .border-amber {
   border-left: 5px solid #ffc107;
 }
-</style>
+</style> -->
