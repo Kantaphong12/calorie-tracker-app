@@ -37,9 +37,9 @@ const linksList: EssentialLinkProps[] = [
   },
   {
     title: 'ระบบจัดการงาน',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
+    caption: 'Work Management',
+    icon: 'work',
+    link: '#/worksmanagement', // เพิ่ม # นำหน้า
   },
 ];
 

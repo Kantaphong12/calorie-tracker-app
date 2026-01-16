@@ -20,6 +20,14 @@ const routes: RouteRecordRaw[] = [
     children: [{ path: '', component: () => import('src/pages/Calorie/CalorieForm.vue') }],
     meta: { requiresAuth: true }, // protect this route
   },
+  {
+    path: '/worksmanagement',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '', component: () => import('src/pages/worksmanagement/work-management.vue') },
+    ],
+    meta: { requiresAuth: true }, // protect this route
+  },
   // Always leave this as last one,
   // but you can also remove it
   {
