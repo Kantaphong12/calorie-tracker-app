@@ -95,6 +95,7 @@ function clearFoodInput() {
   // foodInputRef.value?.focus();
 }
 const updateSearch = debounce((newVal) => {
+  //ดีเลย์การพิมพ์
   debounceText.value = newVal.toLocaleLowerCase();
   loading.value = false;
 }, 100);

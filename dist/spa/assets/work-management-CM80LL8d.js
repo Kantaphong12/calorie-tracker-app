@@ -1,1 +1,0 @@
-import{_ as n}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{P as o,Q as t,Y as r}from"./index-Bw7egB9p.js";const a={},s={class:"work-management"};function c(m,e){return t(),o("div",s,e[0]||(e[0]=[r("h1",null,"Work Management",-1)]))}const l=n(a,[["render",c]]);export{l as default};

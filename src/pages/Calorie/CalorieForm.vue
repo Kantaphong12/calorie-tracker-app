@@ -187,8 +187,10 @@ const dataFoodAPI = ref<FoodItem[]>([]);
 // const API_BASE_URL = 'https://api-calorie.surindev.com'; //deploy
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string; // --- IGNORE ---
 const loading = ref(false);
+const statusToken = ref(false);
 const loadData = async () => {
   try {
+    statusToken.value = true;
     loading.value = true;
     const token = localStorage.getItem('authToken');
     const responseAPI = await fetch(
@@ -221,6 +223,7 @@ const loadData = async () => {
       alert('ไม่สามารถโหลดไฟล์ได้');
     }
     if (responseAPI.ok) {
+      statusToken.value = false;
       //ถ้าดึงข้อมูลแคลอรีจาก API สำเร็จ
       caloriesData.value = await responseAPI.json();
       // console.log('caloriesData.value', caloriesData.value);
@@ -271,6 +274,8 @@ function onLogout() {
 }
 
 onMounted(async () => {
+  //เมื่อหน้าโหลดเสร็จ
+  loading.value = true;
   try {
     await loadData();
     // loadFromLocalStorage();
@@ -479,6 +484,10 @@ async function handleDataUpdate(rowData: CalorieItem) {
           <!-- <q-card-section> -->
           <!-- แสดงข้อมูลปัจจุบัน -->
           <div class="q-pa-sm bg-blue-1 rounded-borders">
+            <q-inner-loading :showing="statusToken">
+              <q-spinner-gears size="50px" color="primary" />
+              <div class="text-primary q-mt-sm">{{ 'กำลังดึงข้อมูลผู้ใช้...' }}</div>
+            </q-inner-loading>
             <q-item>
               <q-item-section top avatar>
                 <q-avatar>
@@ -532,6 +541,7 @@ async function handleDataUpdate(rowData: CalorieItem) {
         >
           <div class="text-center text-h6 text-weight-medium q-mb-md text-grey-8">
             ข้อมูลสุขภาพของคุณ {{ fullName }}
+
             <q-btn
               class="absolute-top-right q-mt-sm q-mr-sm"
               flat
@@ -543,6 +553,7 @@ async function handleDataUpdate(rowData: CalorieItem) {
               @click="onLogout"
             />
           </div>
+
           <q-btn flat round dense icon="logout" color="white" :title="`ออกจากระบบ`" />
           <q-list class="row col-md-12">
             <HealthyMetrics

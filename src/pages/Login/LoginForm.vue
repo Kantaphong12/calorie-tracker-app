@@ -24,7 +24,7 @@ function toggleMode() {
 }
 async function submitForm() {
   loading.value = true;
-
+  // await new Promise((resolve) => setTimeout(resolve, 5000));
   // Simulate async operation
   if (isRegisterMode.value) {
     const payload = {
@@ -199,6 +199,10 @@ async function submitForm() {
       <q-card-actions class="q-px-md q-pb-md column q-gutter-sm">
         <q-btn @click="submitForm" color="primary" class="full-width" :loading="loading">
           {{ isRegisterMode ? 'ยืนยันการสมัคร' : 'เข้าสู่ระบบ' }}
+          <template v-slot:loading>
+            <q-spinner class="on-left" />
+            กำลังติดต่อ Server...
+          </template>
         </q-btn>
 
         <!-- ปุ่มสลับโหมด Login <-> Register -->
