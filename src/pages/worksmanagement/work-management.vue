@@ -1,4 +1,16 @@
 <template>
+  <div v-if="loading" class="loading-pulse">
+    <div class="loading-overlay">
+      <div class="loading-pulse">
+        <div class="pulse-container">
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+        </div>
+        <div class="loading-text">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>
+  </div>
   <q-page class="q-pa-md bg-grey-2">
     <div class="row justify-center">
       <div class="col-12">
@@ -201,10 +213,13 @@
                 <template v-slot:body-cell-status="props">
                   <q-td :props="props">
                     <q-chip
+                      clickable
+                      class="cursor-pointer"
                       :color="statusColor(props.row.status)"
                       text-color="white"
                       :icon="statusIcon(props.row.status)"
                       size="sm"
+                      @click="openModalStatus(props.row)"
                     >
                       {{ getStatusLabel(props.row.status) }}
                     </q-chip>
@@ -261,7 +276,7 @@
                       >
                         <q-tooltip>แก้ไข</q-tooltip>
                       </q-btn>
-                      <q-btn
+                      <!-- <q-btn
                         flat
                         round
                         dense
@@ -271,7 +286,7 @@
                         @click="toggleComplete(props.row.id)"
                       >
                         <q-tooltip>{{ props.row.completed ? 'ยกเลิกเสร็จ' : 'ทำเสร็จ' }}</q-tooltip>
-                      </q-btn>
+                      </q-btn> -->
                       <q-btn
                         flat
                         round
@@ -446,22 +461,86 @@
       </q-card>
     </q-dialog>
   </q-page>
+
+  <!-- Dialog for Status Update -->
+  <q-dialog v-model="showModalStatus">
+    <q-card style="width: 350px">
+      <q-card-section class="bg-primary text-white row items-center">
+        <div class="text-h6">อัปเดตสถานะงาน</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup color="white" />
+      </q-card-section>
+
+      <q-card-section class="q-pt-md">
+        <div v-if="selectedTaskForStatus" class="q-mb-md">
+          <div class="text-subtitle1 text-weight-bold">{{ selectedTaskForStatus.title }}</div>
+          <div class="text-caption text-grey">เลือกสถานะที่ต้องการเปลี่ยน</div>
+        </div>
+
+        <q-list>
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-radio v-model="tempStatus" val="pending" color="grey" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>รอดำเนินการ (Pending)</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="radio_button_unchecked" color="grey" />
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-radio v-model="tempStatus" val="in-progress" color="orange" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>กำลังดำเนินการ (In Progress)</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="schedule" color="orange" />
+            </q-item-section>
+          </q-item>
+
+          <q-item tag="label" v-ripple>
+            <q-item-section avatar>
+              <q-radio v-model="tempStatus" val="completed" color="green" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>เสร็จสิ้น (Completed)</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="check_circle" color="green" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+
+      <q-card-actions align="right" class="bg-grey-1">
+        <q-btn flat label="ยกเลิก" color="grey" v-close-popup />
+        <q-btn unelevated label="บันทึกสถานะ" color="primary" @click="saveStatusChange" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import type { QTableColumn } from 'quasar'; // 1. นำเข้า type ของ Quasar
+import { ref, computed, onMounted } from 'vue';
+import { date, type QTableColumn } from 'quasar'; // 1. นำเข้า type ของ Quasar
 import type Task from 'src/types/work';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const AUTH_TOKEN = localStorage.getItem('authToken');
 const USER_ID = localStorage.getItem('UserID');
 
-// --- DATA ---
 const showModal = ref(false);
+const showModalStatus = ref(false);
 const searchTerm = ref('');
 const filterStatus = ref('all');
 const filterPriority = ref('all');
+
+const selectedTaskForStatus = ref<Task | null>(null);
+const tempStatus = ref('');
 
 // 3. แก้จุดที่ 2: ระบุ type เป็น Task แทน any
 const formData = ref<Task>({
@@ -475,74 +554,13 @@ const formData = ref<Task>({
   recurringFrequency: '',
   status: 'pending',
   completed: false,
+  date_completed: '',
 });
 
 // Mockup Data (ระบุ type เป็น Array ของ Task)
-const tasks = ref<Task[]>([
-  {
-    id: 1,
-    userId: Number(USER_ID),
-    title: 'ส่งรายงานประจำเดือน',
-    description: 'ส่งรายงานสรุปผลงานเดือนมกราคมให้หัวหน้า',
-    status: 'pending',
-    priority: 'urgent',
-    dueDate: '2026-01-20',
-    recurring: false,
-    recurringFrequency: '', // เพิ่มให้ครบตาม interface
-    completed: false,
-  },
-  {
-    id: 2,
-    userId: Number(USER_ID),
-    title: 'ประชุมทีม',
-    description: 'วางแผน Sprint ใหม่',
-    status: 'in-progress',
-    priority: 'normal',
-    dueDate: '2026-01-16',
-    recurring: true,
-    recurringFrequency: 'สัปดาห์ละครั้ง',
-    completed: false,
-  },
-  {
-    id: 3,
-    userId: Number(USER_ID),
-    title: 'ตรวจสอบอีเมล',
-    description: 'ตอบอีเมลลูกค้าและพาร์ทเนอร์',
-    status: 'pending',
-    priority: 'low',
-    dueDate: '2026-01-17',
-    recurring: true,
-    recurringFrequency: 'ทุกวัน',
-    completed: false,
-  },
-  {
-    id: 4,
-    userId: Number(USER_ID),
-    title: 'Review Code',
-    description: 'ตรวจสอบ Pull Request ของทีม',
-    status: 'completed',
-    priority: 'normal',
-    dueDate: '2026-01-15',
-    recurring: false,
-    recurringFrequency: '',
-    completed: true,
-  },
-  {
-    id: 5,
-    userId: Number(USER_ID),
-    title: 'อัพเดทเอกสาร',
-    description: 'ปรับปรุง Documentation',
-    status: 'in-progress',
-    priority: 'low',
-    dueDate: '2026-01-18',
-    recurring: false,
-    recurringFrequency: '',
-    completed: false,
-  },
-]);
+const tasks = ref<Task[]>([]);
 
 // --- TABLE COLUMNS ---
-// 4. แก้จุดที่ 1: ระบุ type ให้ตัวแปร columns เป็น QTableColumn[]
 const columns: QTableColumn[] = [
   {
     name: 'title',
@@ -667,14 +685,20 @@ const openModal = (task: Task | null = null) => {
       title: '',
       description: '',
       priority: 'normal',
-      dueDate: '',
+      dueDate: date.formatDate(Date.now(), 'YYYY-MM-DD'),
       recurring: false,
       recurringFrequency: '',
       status: 'pending',
       completed: false,
+      date_completed: '',
     };
   }
   showModal.value = true;
+};
+const openModalStatus = (task: Task) => {
+  selectedTaskForStatus.value = task; // กำหนดงานที่เลือก
+  tempStatus.value = task.status; // ตั้งค่าเริ่มต้นให้ตรงกับสถานะปัจจุบัน
+  showModalStatus.value = true;
 };
 
 const handleSubmit = async () => {
@@ -688,6 +712,7 @@ const handleSubmit = async () => {
     const index = tasks.value.findIndex((t) => t.id === formData.value.id);
     if (index !== -1) {
       tasks.value[index] = { ...formData.value };
+      UpdateData(formData.value.id);
     }
   } else {
     //เพิ่มงานใหม่
@@ -696,7 +721,7 @@ const handleSubmit = async () => {
       ...formData.value,
     };
     try {
-      await fetch(`${API_BASE_URL}/api/insertTask`, {
+      await fetch(`${API_BASE_URL}/taskapi/insertTask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json', // กำหนดประเภทของข้อมูลที่ส่งไป
@@ -724,10 +749,125 @@ const deleteTask = (id: number | null) => {
 const toggleComplete = (id: number | null) => {
   if (id === null) return;
   const task = tasks.value.find((t) => t.id === id);
-  if (task) {
-    task.completed = !task.completed;
-    task.status = task.completed ? 'completed' : 'pending';
+  console.log('tasktask:', task);
+
+  if (task?.status == 'completed') {
+    task.completed = false;
+    task.status = 'pending';
+    UpdateData(Number(id));
+    return;
   }
+  if (task?.status == 'pending') {
+    task.completed = false;
+    task.status = 'in-progress';
+    UpdateData(Number(id));
+    return;
+  }
+  if (task?.status == 'in-progress') {
+    task.completed = true;
+    task.status = 'completed';
+    UpdateData(Number(id));
+    return;
+  }
+  // console.log('test:', test);
+};
+
+// handleCode here
+const token = localStorage.getItem('authToken');
+const loading = ref(false);
+async function loadData() {
+  const responseAPI = await fetch(
+    `${API_BASE_URL}/taskapi/getTask/${localStorage.getItem('UserID')}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${token}`, // เพิ่ม header สำหรับ token
+      },
+    },
+  ); //ดึงข้อมูลแคลอรีจาก API
+  if (!responseAPI.ok) {
+    throw new Error('Network response was not ok');
+  }
+  const data = await responseAPI.json();
+  console.log(data);
+
+  showTask(data);
+
+  loading.value = false;
+}
+function UpdateData(id: number) {
+  loading.value = true;
+  const taskUpdate = tasks.value.find((t) => t.id === id);
+  if (taskUpdate?.status === 'completed') {
+    taskUpdate.completed = true;
+    taskUpdate.date_completed = date.formatDate(Date.now(), 'YYYY-MM-DD');
+  } else if (taskUpdate?.status === 'in-progress') {
+    taskUpdate.completed = false;
+    taskUpdate.date_completed = '';
+  } else if (taskUpdate?.status === 'pending') {
+    taskUpdate.completed = false;
+    taskUpdate.date_completed = '';
+  }
+
+  if (!taskUpdate) {
+    console.error('ไม่พบงานที่ต้องการอัปเดต');
+    loading.value = false;
+    return;
+  }
+  try {
+    const update = fetch(`${API_BASE_URL}/taskapi/updateTask/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json', // กำหนดประเภทของข้อมูลที่ส่งไป
+        Authorization: `${AUTH_TOKEN}`, // เพิ่ม header สำหรับการยืนยันตัวตน
+      },
+      body: JSON.stringify(taskUpdate), // แปลงข้อมูลเป็น JSON string
+    });
+    console.log(update);
+    loading.value = false;
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการอัปเดตข้อมูล:', error);
+    loading.value = false;
+  }
+}
+
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await loadData();
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดใน onMounted:', error);
+  }
+});
+
+function showTask(data: Task[]) {
+  // 1. หา date string ของวันนี้
+  const today = date.formatDate(Date.now(), 'YYYY-MM-DD');
+
+  // 2. กรองข้อมูลก่อนยัดใส่ tasks.value
+  tasks.value = data.filter((task) => {
+    // เงื่อนไข 1: ถ้ายังทำไม่เสร็จ (completed = false) ให้เอามาแสดงเสมอ
+    if (!task.completed) {
+      return true;
+    }
+
+    // เงื่อนไข 2: ถ้าทำเสร็จแล้ว (completed = true)
+    // ให้เช็คว่า date_completed ตรงกับวันนี้หรือไม่?
+    // (ถ้าตรง return true = เอา, ถ้าไม่ตรง return false = ทิ้งไป)
+    return task.date_completed === today;
+  });
+}
+
+const saveStatusChange = () => {
+  if (selectedTaskForStatus.value) {
+    selectedTaskForStatus.value.status = tempStatus.value;
+
+    // อัปเดตข้อมูลใน backend
+    // UpdateData(selectedTaskForStatus.value.id!);
+    UpdateData(Number(selectedTaskForStatus.value.id));
+  }
+  showModalStatus.value = false;
 };
 </script>
 
@@ -805,4 +945,68 @@ const toggleComplete = (id: number | null) => {
 .task-table :deep(tr:hover) {
   background-color: #f9f9f9;
 }
+
+/* Loading Pulse Styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(0.5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-pulse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-container {
+  display: flex;
+  gap: 10px;
+}
+
+.pulse-dot {
+  width: 15px;
+  height: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite ease-in-out;
+}
+
+.pulse-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.pulse-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loading-text {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* end loading styles */
 </style>
