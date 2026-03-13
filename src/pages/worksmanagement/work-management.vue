@@ -104,7 +104,7 @@
                   </q-item>
 
                   <q-item
-                    v-for="task in recurringTasks.slice(0, 2)"
+                    v-for="task in recurringTasks"
                     :key="'notif-' + task.id"
                     class="bg-purple-1 rounded-borders q-mb-xs"
                   >
@@ -178,6 +178,14 @@
           <q-card-section>
             <div class="text-h6 text-weight-bold q-mb-md">
               <q-icon name="list_alt" /> รายการงานทั้งหมด
+            </div>
+            <div class="col-12 col-md-4 flex items-center">
+              <q-toggle
+                v-model="hideRecurringInTable"
+                label="ซ่อนงานประจำในตาราง"
+                color="purple"
+                keep-color
+              />
             </div>
 
             <!-- Desktop: Table View -->
@@ -541,6 +549,7 @@ const filterPriority = ref('all');
 
 const selectedTaskForStatus = ref<Task | null>(null);
 const tempStatus = ref('');
+const hideRecurringInTable = ref(true);
 
 // 3. แก้จุดที่ 2: ระบุ type เป็น Task แทน any
 const formData = ref<Task>({
@@ -669,7 +678,11 @@ const filteredTasks = computed(() => {
     const matchesStatus = filterStatus.value === 'all' || task.status === filterStatus.value;
     const matchesPriority =
       filterPriority.value === 'all' || task.priority === filterPriority.value;
-    return matchesSearch && matchesStatus && matchesPriority;
+
+    // 3. กรองงานประจำ
+    // ถ้า hideRecurringInTable เป็นจริง และ task นี้เป็นงานประจำ (recurring) ให้ส่งค่า false กลับไปเพื่อไม่แสดง
+    const shouldHide = hideRecurringInTable.value && task.recurring;
+    return matchesSearch && matchesStatus && matchesPriority && !shouldHide;
   });
 });
 
@@ -865,6 +878,8 @@ const saveStatusChange = () => {
 
     // อัปเดตข้อมูลใน backend
     // UpdateData(selectedTaskForStatus.value.id!);
+    console.log(selectedTaskForStatus.value.status);
+
     UpdateData(Number(selectedTaskForStatus.value.id));
   }
   showModalStatus.value = false;
