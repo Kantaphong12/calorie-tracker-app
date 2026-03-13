@@ -90,7 +90,7 @@
                 </div>
               </q-card-section>
               <q-separator />
-              <q-card-section class="q-pa-sm" style="max-height: 180px; overflow-y: auto">
+              <q-card-section class="q-pa-sm" style="max-height: 450px; overflow-y: auto">
                 <q-list separator dense>
                   <q-item v-if="urgentTasksCount > 0" class="bg-red-1 rounded-borders q-mb-xs">
                     <q-item-section avatar>
