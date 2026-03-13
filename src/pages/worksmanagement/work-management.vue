@@ -86,7 +86,7 @@
             <q-card class="notification-card shadow-2 full-height">
               <q-card-section class="bg-amber-1 q-pa-sm">
                 <div class="text-subtitle2 text-weight-bold text-amber-10">
-                  <q-icon name="notifications_active" size="sm" /> การแจ้งเตือน
+                  <q-icon name="notifications_active" size="lm" /> การแจ้งเตือน
                 </div>
               </q-card-section>
               <q-separator />
@@ -413,7 +413,7 @@
           <q-btn icon="close" flat round dense v-close-popup color="white" />
         </q-card-section>
 
-        <q-card-section>
+        <q-card-section class="q-pa-sm" style="overflow-y: auto">
           <q-form @submit="handleSubmit" class="q-gutter-md">
             <q-input
               outlined
