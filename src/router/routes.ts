@@ -28,6 +28,18 @@ const routes: RouteRecordRaw[] = [
     ],
     meta: { requiresAuth: true }, // protect this route
   },
+  {
+    path: '/projectplanning',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/projectplan/project-planning.vue') }],
+    meta: { requiresAuth: true }, // protect this route
+  },
+  {
+    path: '/dashboard',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/projectplan/dashbord-plan.vue') }],
+    meta: { requiresAuth: true }, // protect this route
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

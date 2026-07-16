@@ -41,6 +41,18 @@ const linksList: EssentialLinkProps[] = [
     icon: 'work',
     link: '#/worksmanagement', // เพิ่ม # นำหน้า
   },
+  {
+    title: 'โปรแกรมแผนจัดการงาน',
+    caption: 'Work Management',
+    icon: 'work',
+    link: '#/projectplanning', // เพิ่ม # นำหน้า
+  },
+  {
+    title: 'Dashboard',
+    caption: 'Work Management',
+    icon: 'work',
+    link: '#/dashboard', // เพิ่ม # นำหน้า
+  },
 ];
 
 const leftDrawerOpen = ref(false);

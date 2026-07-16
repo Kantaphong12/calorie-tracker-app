@@ -734,7 +734,7 @@ const handleSubmit = async () => {
       ...formData.value,
     };
     try {
-      await fetch(`${API_BASE_URL}/taskapi/insertTask`, {
+      await fetch(`${API_BASE_URL}/planapi/insertTask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json', // กำหนดประเภทของข้อมูลที่ส่งไป
