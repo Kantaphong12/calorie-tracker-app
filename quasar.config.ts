@@ -100,15 +100,15 @@ export default defineConfig((ctx) => {
       open: true,
       proxy: {
         '/api': {
-          target: isProd ? 'https://SmartBudget.surindev.com' : 'http://localhost:8080',
+          target: 'https://SmartBudget.surindev.com',
           changeOrigin: true,
         },
         '/taskapi': {
-          target: isProd ? 'https://SmartBudget.surindev.com' : 'http://localhost:8080',
+          target: 'https://SmartBudget.surindev.com',
           changeOrigin: true,
         },
         '/planapi': {
-          target: isProd ? 'https://SmartBudget.surindev.com' : 'http://localhost:8080',
+          target: 'https://SmartBudget.surindev.com',
           changeOrigin: true,
         },
       },
