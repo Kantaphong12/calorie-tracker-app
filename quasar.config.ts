@@ -5,7 +5,6 @@ import { defineConfig } from '#q-app/wrappers';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig((ctx) => {
-  const isProd = process.env.NODE_ENV === 'production';
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -96,19 +95,20 @@ export default defineConfig((ctx) => {
       ],
     },
 
+    // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
       open: true,
       proxy: {
         '/api': {
-          target: 'https://SmartBudget.surindev.com',
+          target: 'http://localhost:8080',
           changeOrigin: true,
         },
         '/taskapi': {
-          target: 'https://SmartBudget.surindev.com',
+          target: 'http://localhost:8080',
           changeOrigin: true,
         },
         '/planapi': {
-          target: 'https://SmartBudget.surindev.com',
+          target: 'http://localhost:8080',
           changeOrigin: true,
         },
       },

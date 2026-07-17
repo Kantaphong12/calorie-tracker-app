@@ -89,7 +89,13 @@ async function submitForm() {
       localStorage.setItem('authToken', responseData.token); // save token
       localStorage.setItem('UserID', responseData.user.id); // save token
 
-      void router.replace('/calorie'); // redirect to protected route
+      // UserID 1 (เจ้าของระบบ) เข้าหน้าเดิม (/calorie) ตามปกติ
+      // คนอื่น (เช่นเพื่อนที่ demo ให้ดู) เด้งไปหน้า Planning dashboard เลย
+      if (String(responseData.user.id) === '1') {
+        void router.replace('/calorie'); // redirect to protected route
+      } else {
+        void router.replace('/dashboard');
+      }
 
       loading.value = false;
       Notify.create({
