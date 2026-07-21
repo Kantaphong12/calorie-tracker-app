@@ -358,187 +358,160 @@
           </div>
         </div>
 
-        <!-- PROJECT KPI CARDS -->
-        <div class="db-kpi-grid" v-if="selectedProject">
-          <div
-            v-for="kpi in projectKpis"
-            :key="kpi.id"
-            class="db-kpi-card"
-            :class="'db-kpi-card--' + kpi.variant"
-          >
-            <div class="db-kpi-icon-wrap">
-              <q-icon :name="kpi.icon" size="1.4rem" :color="kpi.iconColor" />
-            </div>
-            <div class="db-kpi-body">
-              <div class="db-kpi-value">{{ kpi.value }}</div>
-              <div class="db-kpi-label">{{ kpi.label }}</div>
-              <div class="db-kpi-trend" :class="'db-kpi-trend--' + kpi.trendDir">
-                <q-icon
-                  :name="kpi.trendDir === 'up' ? 'trending_up' : 'trending_down'"
-                  size="0.75rem"
-                />
-                {{ kpi.trend }}
-              </div>
-            </div>
-          </div>
+        <!-- ============================================================
+             QUICK SUMMARY (สรุปเร็ว ก่อนเข้าดูแผนใหญ่)
+        ============================================================ -->
+        <div class="db-summary-loading" v-if="dashboardLoading">
+          <q-spinner color="blue-4" size="2em" />
+          <span>กำลังโหลดข้อมูลสรุป...</span>
         </div>
 
-        <!-- S-CURVE + MILESTONE -->
-        <div class="db-two-col">
-          <!-- S-Curve Detail -->
-          <div class="db-section db-scurve-detail-section">
+        <div class="db-summary-wrap" v-else-if="dashboardData">
+          <!-- PROGRESS BARS: แผนงาน / ผลงาน / งบประมาณ -->
+          <div class="db-section">
             <div class="db-section-header">
-              <span class="db-section-title">S-Curve ความคืบหน้า</span>
-              <div class="db-section-filters">
-                <button
-                  v-for="p in ['weekly', 'monthly']"
-                  :key="p"
-                  class="db-filter-chip"
-                  :class="{ 'db-filter-chip--active': scurvePeriod === p }"
-                  @click="scurvePeriod = p"
-                >
-                  {{ p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน' }}
-                </button>
-              </div>
+              <span class="db-section-title">ความคืบหน้าโดยรวม</span>
+              <button class="db-btn db-btn-ghost" @click="navigate('gantt')">
+                <q-icon name="view_timeline" size="0.85rem" />ดูแผนละเอียด
+              </button>
             </div>
-            <canvas
-              ref="detailScurveCanvas"
-              class="db-detail-scurve"
-              width="600"
-              height="200"
-            ></canvas>
-            <div class="db-scurve-table">
-              <table class="db-table">
-                <thead>
-                  <tr>
-                    <th>งวด</th>
-                    <th>แผน%</th>
-                    <th>แผนสะสม%</th>
-                    <th>จริง%</th>
-                    <th>จริงสะสม%</th>
-                    <th>Variance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in scurveTableRows" :key="row.period">
-                    <td>{{ row.period }}</td>
-                    <td>{{ (row.plan ?? 0).toFixed(2) }}</td>
-                    <td>{{ (row.planCum ?? 0).toFixed(2) }}</td>
-                    <td>{{ (row.actual ?? 0) > 0 ? (row.actual ?? 0).toFixed(2) : '–' }}</td>
-                    <td>{{ (row.actualCum ?? 0) > 0 ? (row.actualCum ?? 0).toFixed(2) : '–' }}</td>
-                    <td
-                      :class="{
-                        'text-positive': (row.variance ?? 0) > 0,
-                        'text-negative': (row.variance ?? 0) < 0,
-                      }"
-                    >
-                      {{
-                        (row.actualCum ?? 0) > 0
-                          ? ((row.variance ?? 0) > 0 ? '+' : '') + (row.variance ?? 0).toFixed(2)
-                          : '–'
-                      }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="db-vbar-chart">
+              <div class="db-vbar-gridlines">
+                <div
+                  v-for="g in [100, 75, 50, 25, 0]"
+                  :key="g"
+                  class="db-vbar-gridline"
+                  :style="{ bottom: g + '%' }"
+                >
+                  <span class="db-vbar-gridlabel">{{ g }}</span>
+                </div>
+              </div>
+              <div class="db-vbar-cols">
+                <div class="db-vbar-col" v-for="bar in progressBars" :key="bar.key">
+                  <div class="db-vbar-tag" :class="'db-vbar-tag--' + bar.key">
+                    {{ bar.value.toFixed(1) }}%
+                  </div>
+                  <div class="db-vbar-track">
+                    <div
+                      class="db-vbar-fill"
+                      :class="'db-vbar-fill--' + bar.key"
+                      :style="{ height: (barsGrown ? Math.min(bar.value, 100) : 0) + '%' }"
+                    ></div>
+                  </div>
+                  <div class="db-vbar-baseline-tick"></div>
+                  <div class="db-vbar-label">{{ bar.label }}</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Milestone + Activity -->
-          <div class="db-side-col">
-            <!-- Milestone Tracker -->
-            <div class="db-section">
-              <div class="db-section-header">
-                <span class="db-section-title">Milestone</span>
-              </div>
-              <div class="db-milestone-list">
-                <div
-                  v-for="ms in milestones"
-                  :key="ms.id"
-                  class="db-milestone-item"
-                  :class="'db-ms--' + ms.status"
-                >
-                  <div class="db-ms-icon">
-                    <q-icon
-                      :name="
-                        ms.status === 'done'
-                          ? 'check_circle'
-                          : ms.status === 'active'
-                            ? 'radio_button_checked'
-                            : 'radio_button_unchecked'
-                      "
-                      size="1rem"
-                    />
-                  </div>
-                  <div class="db-ms-body">
-                    <div class="db-ms-name">{{ ms.name }}</div>
-                    <div class="db-ms-date">{{ ms.date }}</div>
-                  </div>
-                  <div class="db-ms-pct" v-if="ms.pct > 0">{{ ms.pct }}%</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Weekly Progress Bar Chart -->
-            <div class="db-section">
-              <div class="db-section-header">
-                <span class="db-section-title">ความคืบหน้ารายสัปดาห์</span>
-              </div>
-              <div class="db-weekly-bars">
-                <div v-for="wb in weeklyBars" :key="wb.week" class="db-weekly-bar-item">
-                  <div class="db-wb-label">{{ wb.week }}</div>
-                  <div class="db-wb-bars">
-                    <div
-                      class="db-wb-plan"
-                      :style="{ height: wb.plan * 2.4 + 'px' }"
-                      :title="'แผน ' + wb.plan + '%'"
-                    ></div>
-                    <div
-                      class="db-wb-actual"
-                      :style="{ height: wb.actual * 2.4 + 'px' }"
-                      :title="'จริง ' + wb.actual + '%'"
-                    ></div>
-                  </div>
-                  <div class="db-wb-val">{{ wb.actual > 0 ? wb.actual : '–' }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Budget Overview -->
-            <div class="db-section">
-              <div class="db-section-header">
-                <span class="db-section-title">งบประมาณ</span>
-              </div>
-              <div class="db-budget-rows" v-if="selectedProject">
-                <div class="db-budget-row">
-                  <span>งบโครงการ</span>
-                  <span class="db-bval">฿{{ formatBudget(selectedProject.budget) }}</span>
-                </div>
-                <div class="db-budget-row">
-                  <span>เบิกจ่ายแล้ว</span>
-                  <span class="db-bval text-positive"
-                    >฿{{ formatBudget(selectedProject.spent) }}</span
+          <div class="db-two-col">
+            <!-- ซ้าย: งานสัปดาห์นี้ + Note -->
+            <div class="db-side-col">
+              <!-- งานที่ต้องทำสัปดาห์นี้ -->
+              <div class="db-section">
+                <div class="db-section-header">
+                  <span class="db-section-title"
+                    >งานที่ต้องทำสัปดาห์นี้ ({{ dashboardData.thisWeekTasks.length }})</span
                   >
                 </div>
-                <div class="db-budget-row">
-                  <span>คงเหลือ</span>
-                  <span class="db-bval"
-                    >฿{{ formatBudget(selectedProject.budget - selectedProject.spent) }}</span
-                  >
-                </div>
-                <div class="db-budget-progress">
+                <div class="db-simple-list" v-if="dashboardData.thisWeekTasks.length">
                   <div
-                    class="db-bp-bar"
-                    :style="{
-                      width:
-                        ((selectedProject.spent / selectedProject.budget) * 100).toFixed(1) + '%',
-                    }"
-                  ></div>
+                    v-for="t in dashboardData.thisWeekTasks"
+                    :key="t.id"
+                    class="db-simple-list-item"
+                  >
+                    <q-icon name="task_alt" size="0.85rem" color="blue-4" />
+                    <span class="db-sli-name">{{ t.name }}</span>
+                    <span class="db-sli-meta">{{ t.actualPct ?? 0 }}%</span>
+                  </div>
                 </div>
-                <div class="db-budget-sub">
-                  ใช้ไป {{ ((selectedProject.spent / selectedProject.budget) * 100).toFixed(1) }}%
-                  ของงบทั้งหมด
+                <div class="db-empty-hint" v-else>ไม่มีงานที่ต้องทำสัปดาห์นี้</div>
+              </div>
+
+              <!-- Note -->
+              <div class="db-section">
+                <div class="db-section-header">
+                  <span class="db-section-title">Note</span>
                 </div>
+                <div class="db-note-add-row">
+                  <input
+                    class="db-form-inp"
+                    v-model="newNoteText"
+                    placeholder="พิมพ์ note แล้วกด Enter..."
+                    @keyup.enter="addNote"
+                  />
+                  <button class="db-btn db-btn-primary" @click="addNote">
+                    <q-icon name="add" size="0.85rem" />
+                  </button>
+                </div>
+                <div class="db-simple-list" v-if="dashboardData.notes.length">
+                  <div
+                    v-for="n in dashboardData.notes"
+                    :key="n.id"
+                    class="db-simple-list-item db-note-item"
+                  >
+                    <q-icon
+                      :name="n.isDone ? 'check_box' : 'check_box_outline_blank'"
+                      size="0.9rem"
+                      :color="n.isDone ? 'green-5' : 'grey-5'"
+                      class="db-note-check"
+                      @click="toggleNoteDone(n)"
+                    />
+                    <span class="db-sli-name" :class="{ 'db-note-done': n.isDone }">{{
+                      n.note
+                    }}</span>
+                    <button class="db-note-del" @click="removeNote(n.id)">
+                      <q-icon name="close" size="0.8rem" />
+                    </button>
+                  </div>
+                </div>
+                <div class="db-empty-hint" v-else>ยังไม่มี note</div>
+              </div>
+            </div>
+
+            <!-- ขวา: งานล่าช้า + งานเร็วกว่ากำหนด -->
+            <div class="db-side-col">
+              <!-- งานล่าช้ากว่ากำหนด -->
+              <div class="db-section">
+                <div class="db-section-header">
+                  <span class="db-section-title"
+                    >งานล่าช้ากว่ากำหนด ({{ dashboardData.overdueTasks.length }})</span
+                  >
+                </div>
+                <div class="db-simple-list" v-if="dashboardData.overdueTasks.length">
+                  <div
+                    v-for="t in dashboardData.overdueTasks"
+                    :key="t.id"
+                    class="db-simple-list-item db-simple-list-item--overdue"
+                  >
+                    <q-icon name="warning_amber" size="0.85rem" color="orange-5" />
+                    <span class="db-sli-name">{{ t.name }}</span>
+                    <span class="db-sli-meta db-sli-meta--warn">ช้า {{ t.daysLate }} วัน</span>
+                  </div>
+                </div>
+                <div class="db-empty-hint" v-else>ไม่มีงานล่าช้า</div>
+              </div>
+
+              <!-- งานเร็วกว่ากำหนด -->
+              <div class="db-section">
+                <div class="db-section-header">
+                  <span class="db-section-title"
+                    >งานเร็วกว่ากำหนด ({{ dashboardData.aheadTasks.length }})</span
+                  >
+                </div>
+                <div class="db-simple-list" v-if="dashboardData.aheadTasks.length">
+                  <div
+                    v-for="t in dashboardData.aheadTasks"
+                    :key="t.id"
+                    class="db-simple-list-item db-simple-list-item--ahead"
+                  >
+                    <q-icon name="bolt" size="0.85rem" color="green-5" />
+                    <span class="db-sli-name">{{ t.name }}</span>
+                    <span class="db-sli-meta db-sli-meta--good">เร็ว {{ t.daysAhead }} วัน</span>
+                  </div>
+                </div>
+                <div class="db-empty-hint" v-else>ไม่มีงานเร็วกว่ากำหนด</div>
               </div>
             </div>
           </div>
@@ -1034,14 +1007,6 @@ interface Alert {
   dismissed: boolean;
 }
 
-interface Milestone {
-  id: number;
-  name: string;
-  date: string;
-  status: 'done' | 'active' | 'pending';
-  pct: number;
-}
-
 interface NavItem {
   id: string;
   label: string;
@@ -1077,13 +1042,47 @@ interface ProjectForm {
   description: string;
   contractDate: string;
 }
-interface ScurvePoint {
-  period: string;
-  plan: number;
-  planCum: number;
-  actual: number;
-  actualCum: number;
-  variance: number;
+// interface ScurvePoint {
+//   period: string;
+//   plan: number;
+//   planCum: number;
+//   actual: number;
+//   actualCum: number;
+//   variance: number;
+// }
+
+// ★ QUICK SUMMARY: shape ตรงกับ response ของ /planapi/getDashboard/:id
+interface DashboardTask {
+  id: number;
+  name: string;
+  start?: string;
+  end?: string;
+  pct?: number;
+  actualPct: number | null;
+}
+interface DashboardOverdueTask {
+  id: number;
+  name: string;
+  daysLate: number;
+}
+interface DashboardAheadTask {
+  id: number;
+  name: string;
+  daysAhead: number;
+}
+interface PlanningNote {
+  id: number;
+  p_id: number;
+  note: string;
+  isDone: boolean;
+  createdAt: string;
+}
+interface DashboardData {
+  progress: { planPct: number; actualPct: number; budgetPct: number };
+  thisWeekTasks: DashboardTask[];
+  overdueTasks: DashboardOverdueTask[];
+  aheadTasks: DashboardAheadTask[];
+  notes: PlanningNote[];
 }
 
 // ============================================================
@@ -1094,12 +1093,26 @@ const sidebarCollapsed = ref<boolean>(false);
 const searchQuery = ref<string>('');
 const projectFilter = ref<string>('all');
 const alertsExpanded = ref<boolean>(false);
-const scurvePeriod = ref<string>('monthly');
 const showUpdateModal = ref<boolean>(false);
 const showNotifications = ref<boolean>(false);
 const showUserMenu = ref<boolean>(false);
 const selectedProject = ref<Project | null>(null);
-const scurveData = ref<ScurvePoint[]>([]);
+
+// ★ QUICK SUMMARY state
+const dashboardData = ref<DashboardData | null>(null);
+const dashboardLoading = ref<boolean>(false);
+const newNoteText = ref<string>('');
+const barsGrown = ref<boolean>(false); // true = สั่งให้แท่งกราฟโตขึ้นเต็มค่า (trigger transition)
+
+const progressBars = computed(() => {
+  if (!dashboardData.value) return [];
+  const p = dashboardData.value.progress;
+  return [
+    { key: 'plan', label: 'แผนงาน', value: p.planPct },
+    { key: 'actual', label: 'ผลงาน', value: p.actualPct },
+    { key: 'budget', label: 'งบประมาณ', value: p.budgetPct },
+  ];
+});
 
 // ★ CRUD state
 const showProjectModal = ref<boolean>(false);
@@ -1113,7 +1126,6 @@ const deletingProject = ref<Project | null>(null);
 
 // Canvas refs
 const miniScurveCanvas = ref<HTMLCanvasElement | null>(null);
-const detailScurveCanvas = ref<HTMLCanvasElement | null>(null);
 
 // ★ CRUD: unified project form + errors
 const blankForm = (): ProjectForm => ({
@@ -1395,25 +1407,6 @@ const notifications = ref([
   },
 ]);
 
-const milestones: Milestone[] = [
-  { id: 1, name: 'งานเตรียมสถานที่', date: '15 ธ.ค. 65', status: 'done', pct: 100 },
-  { id: 2, name: 'งานโครงสร้าง', date: '5 เม.ย. 66', status: 'done', pct: 100 },
-  { id: 3, name: 'งานสถาปัตยกรรม', date: '18 พ.ค. 66', status: 'active', pct: 85 },
-  { id: 4, name: 'งานระบบ MEP', date: '5 พ.ค. 66', status: 'active', pct: 72 },
-  { id: 5, name: 'ทดสอบระบบและส่งมอบ', date: '29 พ.ค. 66', status: 'pending', pct: 0 },
-];
-
-const weeklyBars = [
-  { week: 'W1', plan: 8.2, actual: 8.9 },
-  { week: 'W2', plan: 9.4, actual: 8.1 },
-  { week: 'W3', plan: 7.2, actual: 7.8 },
-  { week: 'W4', plan: 10.9, actual: 11.2 },
-  { week: 'W5', plan: 8.9, actual: 9.1 },
-  { week: 'W6', plan: 5.2, actual: 4.8 },
-  { week: 'W7', plan: 3.3, actual: 3.1 },
-  { week: 'W8', plan: 0.7, actual: 0 },
-];
-
 const monthlyData = computed(() =>
   allProjects.value.map((p) => ({
     period: p.code,
@@ -1450,19 +1443,114 @@ const fetchProject = async (): Promise<void> => {
     console.error('Error fetching data:', error);
   }
 };
-const fetchScurve = async (projectId: number, period = 'monthly') => {
-  const res = await fetch(`${API_BASE_URL}/planapi/getScurve/${projectId}?period=${period}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `${AUTH_TOKEN}`,
-    },
-  });
-  scurveData.value = await res.json();
-  // console.log('Scurve data', scurveData.value);
-  // console.log('scurve raw:', JSON.stringify(scurveData.value, null, 2));
-  await nextTick();
-  drawDetailScurve();
+
+// ★ QUICK SUMMARY: ดึงข้อมูลสรุปเร็วทั้งหมด (progress + งานสัปดาห์นี้ + ล่าช้า + เร็วกว่ากำหนด + notes)
+const fetchDashboard = async (projectId: number) => {
+  dashboardLoading.value = true;
+  barsGrown.value = false; // รีเซ็ตก่อน ให้แท่งกราฟเริ่มจาก 0 ใหม่ทุกครั้งที่เปิดโครงการ
+  try {
+    const res = await fetch(`${API_BASE_URL}/planapi/getDashboard/${projectId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${AUTH_TOKEN}`,
+      },
+    });
+    if (!res.ok) {
+      showToast('โหลดข้อมูลสรุปไม่สำเร็จ', 'error');
+      dashboardData.value = null;
+      return;
+    }
+    dashboardData.value = await res.json();
+    await nextTick();
+    // หน่วงเล็กน้อยก่อนสั่งโต ให้ browser วาด state เริ่มต้น (0%) ก่อน 1 เฟรม
+    // ไม่งั้น CSS transition จะไม่เห็นผล (กระโดดไปค่าสุดท้ายทันทีโดยไม่ animate)
+    window.setTimeout(() => {
+      barsGrown.value = true;
+    }, 50);
+  } catch (error) {
+    console.error('Error fetching dashboard:', error);
+    showToast('โหลดข้อมูลสรุปไม่สำเร็จ', 'error');
+  } finally {
+    dashboardLoading.value = false;
+  }
+};
+
+// ★ QUICK SUMMARY: เพิ่ม note ใหม่
+const addNote = async () => {
+  const text = newNoteText.value.trim();
+  if (!text || !selectedProject.value) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/planapi/insertNote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${AUTH_TOKEN}`,
+      },
+      body: JSON.stringify({ p_id: selectedProject.value.id, note: text }),
+    });
+    if (!res.ok) {
+      showToast('เพิ่ม note ไม่สำเร็จ', 'error');
+      return;
+    }
+    const created: PlanningNote = await res.json();
+    dashboardData.value?.notes.unshift(created);
+    newNoteText.value = '';
+  } catch (error) {
+    console.error('Error adding note:', error);
+    showToast('เพิ่ม note ไม่สำเร็จ', 'error');
+  }
+};
+
+// ★ QUICK SUMMARY: ติ๊ก/ยกเลิกติ๊กว่า note นี้ทำแล้วหรือยัง
+const toggleNoteDone = async (note: PlanningNote) => {
+  const newValue = !note.isDone;
+  note.isDone = newValue; // อัปเดต UI ทันที ไม่ต้องรอ response (optimistic update)
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/planapi/updateNote/${note.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${AUTH_TOKEN}`,
+      },
+      body: JSON.stringify({ isDone: newValue }),
+    });
+    if (!res.ok) {
+      note.isDone = !newValue; // ยิงไม่สำเร็จ ย้อนค่ากลับ
+      showToast('อัปเดต note ไม่สำเร็จ', 'error');
+    }
+  } catch (error) {
+    console.error('Error updating note:', error);
+    note.isDone = !newValue;
+    showToast('อัปเดต note ไม่สำเร็จ', 'error');
+  }
+};
+
+// ★ QUICK SUMMARY: ลบ note
+const removeNote = async (noteId: number) => {
+  if (!dashboardData.value) return;
+
+  const backup = [...dashboardData.value.notes];
+  dashboardData.value.notes = dashboardData.value.notes.filter((n) => n.id !== noteId);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/planapi/deleteNote/${noteId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `${AUTH_TOKEN}`,
+      },
+    });
+    if (!res.ok) {
+      dashboardData.value.notes = backup; // ยิงไม่สำเร็จ ย้อนค่ากลับ
+      showToast('ลบ note ไม่สำเร็จ', 'error');
+    }
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    dashboardData.value.notes = backup;
+    showToast('ลบ note ไม่สำเร็จ', 'error');
+  }
 };
 onMounted(async () => {
   // Simulate API call delay
@@ -1558,74 +1646,6 @@ const kpiCards = computed<KpiCard[]>(() => {
   ];
 });
 
-const projectKpis = computed<KpiCard[]>(() => {
-  const p = selectedProject.value;
-  if (!p) return [];
-  const variance = p.actualPct - p.planPct;
-  const spentPct = (p.spent / p.budget) * 100;
-  return [
-    {
-      id: 'plan',
-      label: 'แผนสะสม',
-      value: p.planPct + '%',
-      icon: 'timeline',
-      iconColor: 'blue-4',
-      variant: 'blue',
-      trend: 'ณ วันนี้',
-      trendDir: 'flat',
-    },
-    {
-      id: 'actual',
-      label: 'ผลงานจริงสะสม',
-      value: p.actualPct + '%',
-      icon: 'check_circle',
-      iconColor: 'green-4',
-      variant: 'green',
-      trend: variance >= 0 ? `+${variance.toFixed(1)}%` : `${variance.toFixed(1)}%`,
-      trendDir: variance >= 0 ? 'up' : 'down',
-    },
-    {
-      id: 'days',
-      label: 'วันคงเหลือ',
-      value: p.daysLeft > 0 ? p.daysLeft + ' วัน' : 'เกิน ' + Math.abs(p.daysLeft) + ' วัน',
-      icon: 'event',
-      iconColor: p.daysLeft < 0 ? 'red-4' : 'orange-4',
-      variant: p.daysLeft < 0 ? 'red' : 'orange',
-      trend: p.end,
-      trendDir: 'flat',
-    },
-    {
-      id: 'budget',
-      label: 'เบิกจ่ายงบ',
-      value: spentPct.toFixed(0) + '%',
-      icon: 'payments',
-      iconColor: 'teal-4',
-      variant: 'teal',
-      trend: `฿${formatBudget(p.spent)} / ฿${formatBudget(p.budget)}`,
-      trendDir: 'flat',
-    },
-  ];
-});
-const scurveTableRows = computed<ScurvePoint[]>(() => scurveData.value);
-// const scurveTableRows = computed(() => {
-//   const data =
-//     scurvePeriod.value === 'monthly'
-//       ? monthlyData.value
-//       : weeklyBars.map((w) => ({
-//           period: w.week,
-//           plan: w.plan,
-//           actual: w.actual,
-//         }));
-//   let planCum = 0,
-//     actualCum = 0;
-//   return data.map((d) => {
-//     planCum += d.plan;
-//     if (d.actual > 0) actualCum += d.actual;
-//     const variance = d.actual > 0 ? actualCum - planCum : 0;
-//     return { period: d.period, plan: d.plan, planCum, actual: d.actual, actualCum, variance };
-//   });
-// });
-
 // ============================================================
 // HELPERS
 // ============================================================
@@ -1659,6 +1679,7 @@ const openProject = (proj: Project): void => {
   selectedProject.value = proj; // ตั้งค่าโครงการที่เลือก
   updateForm.actualPct = proj.actualPct; // เตรียมฟอร์มอัปเดตความคืบหน้า
   navigate('project-detail'); // ไปที่หน้าแสดงรายละเอียดโครงการ
+  void fetchDashboard(proj.id); // โหลดข้อมูลสรุปเร็วของโครงการนี้ทันที
 };
 
 const dismissAlert = (id: number): void => {
@@ -1918,7 +1939,7 @@ const saveProgress = (): void => {
     user: 'วศิน ภ.',
     time: 'เมื่อกี้',
   });
-  void nextTick(() => drawDetailScurve());
+  void fetchDashboard(selectedProject.value.id); // รีเฟรชข้อมูลสรุปเร็วให้ทันกับความคืบหน้าที่เพิ่งบันทึก
 };
 
 // ============================================================
@@ -1995,131 +2016,15 @@ const drawMiniScurve = (): void => {
 };
 
 // ============================================================
-// CANVAS DRAWING — Detail S-Curve (project page)
-// ============================================================
-const drawDetailScurve = (): void => {
-  const canvas = detailScurveCanvas.value;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-
-  const W = canvas.width,
-    H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#0d1b2a';
-  ctx.fillRect(0, 0, W, H);
-
-  const rows = scurveTableRows.value;
-  const stepX = (W - 40) / Math.max(rows.length - 1, 1);
-
-  // ✅ เปลี่ยนจาก [20,40,60,80,100] เป็น fraction 0-1
-  const gridPcts: number[] = [0.2, 0.4, 0.6, 0.8, 1.0];
-  gridPcts.forEach((v: number) => {
-    const y = H - v * (H - 24) - 10;
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(20, y);
-    ctx.lineTo(W - 10, y);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = '9px Sarabun,sans-serif';
-    ctx.fillText(v * 100 + '%', 2, y + 3); // ✅ แสดง label เป็น % ปกติ
-  });
-
-  // ✅ Plan fill area — เปลี่ยน /100 → ใช้ค่าตรงๆ
-  ctx.beginPath();
-  ctx.fillStyle = 'rgba(79,195,247,0.1)';
-  rows.forEach((d, i: number) => {
-    const x = 20 + i * stepX;
-    const y = H - d.planCum * (H - 24) - 10; // ✅
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  const lastX = 20 + (rows.length - 1) * stepX;
-  ctx.lineTo(lastX, H - 10);
-  ctx.lineTo(20, H - 10);
-  ctx.closePath();
-  ctx.fill();
-
-  // ✅ Plan line
-  ctx.beginPath();
-  ctx.strokeStyle = '#4fc3f7';
-  ctx.lineWidth = 2.5;
-  rows.forEach((d, i: number) => {
-    const x = 20 + i * stepX;
-    const y = H - d.planCum * (H - 24) - 10; // ✅
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // ✅ Actual line
-  const actualRows = rows.filter((r) => r.actualCum > 0);
-  if (actualRows.length > 1) {
-    ctx.beginPath();
-    ctx.strokeStyle = '#81c784';
-    ctx.lineWidth = 2.5;
-    actualRows.forEach((d, i: number) => {
-      const origIdx = rows.indexOf(d);
-      const x = 20 + origIdx * stepX;
-      const y = H - d.actualCum * (H - 24) - 10; // ✅
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  // X-axis labels (period)
-  rows.forEach((d, i: number) => {
-    if (i % 2 === 0) {
-      const x = 20 + i * stepX;
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = '8px Sarabun,sans-serif';
-      ctx.fillText(d.period, x - 12, H - 1);
-    }
-  });
-
-  // ✅ Dots
-  rows.forEach((d, i: number) => {
-    const x = 20 + i * stepX;
-    const yPlan = H - d.planCum * (H - 24) - 10; // ✅
-    ctx.fillStyle = '#4fc3f7';
-    ctx.beginPath();
-    ctx.arc(x, yPlan, 3, 0, Math.PI * 2);
-    ctx.fill();
-    if (d.actualCum > 0) {
-      const yAct = H - d.actualCum * (H - 24) - 10; // ✅
-      ctx.fillStyle = '#81c784';
-      ctx.beginPath();
-      ctx.arc(x, yAct, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
-
-  // Legend
-  ctx.fillStyle = '#4fc3f7';
-  ctx.fillRect(W - 90, 8, 14, 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = '9px Sarabun,sans-serif';
-  ctx.fillText('แผน', W - 74, 13);
-  ctx.fillStyle = '#81c784';
-  ctx.fillRect(W - 90, 20, 14, 2);
-  ctx.fillText('จริง', W - 74, 25);
-};
 
 // ============================================================
 // WATCHERS & LIFECYCLE
 // ============================================================
 watch(activeNav, async (val) => {
+  // สรุปเร็ว (Quick Summary) ย้ายมาอยู่ในหน้า project-detail แทน S-Curve แล้ว
+  // เผื่อกดกลับมาหน้านี้อีกรอบ (เช่นกดปุ่ม back ของเบราว์เซอร์) โหลดข้อมูลใหม่ให้สดอยู่เสมอ
   if (val === 'project-detail' && selectedProject.value) {
-    await fetchScurve(selectedProject.value.id, scurvePeriod.value);
-  }
-});
-
-watch(scurvePeriod, async () => {
-  if (selectedProject.value) {
-    await fetchScurve(selectedProject.value.id, scurvePeriod.value);
+    await fetchDashboard(selectedProject.value.id);
   }
 });
 
@@ -3169,6 +3074,216 @@ onMounted(async () => {
 .db-scurve-table {
   max-height: 200px;
   overflow-y: auto;
+}
+
+/* ============================================================
+   QUICK SUMMARY (สรุปเร็ว)
+============================================================ */
+.db-summary-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 40px;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.db-vbar-chart {
+  position: relative;
+  display: flex;
+  height: 150px;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 6px 6px 6px 28px;
+  background-image: linear-gradient(rgba(79, 195, 247, 0.06) 1px, transparent 1px);
+  background-size: 100% 25%;
+  border-radius: 8px;
+  border: 1px solid rgba(79, 195, 247, 0.12);
+}
+.db-vbar-gridlines {
+  position: absolute;
+  inset: 6px 6px 6px 6px;
+  pointer-events: none;
+}
+.db-vbar-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(96, 112, 128, 0.35);
+}
+.db-vbar-gridlabel {
+  position: absolute;
+  left: -24px;
+  top: -6px;
+  width: 20px;
+  text-align: right;
+  font-size: 8.5px;
+  color: #607080;
+  font-family: 'Courier New', monospace;
+}
+.db-vbar-cols {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 1;
+  gap: 30px;
+  z-index: 1;
+}
+.db-vbar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+  height: 100%;
+}
+.db-vbar-tag {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.db-vbar-tag--plan {
+  color: #81c784;
+  background: rgba(102, 187, 106, 0.12);
+}
+.db-vbar-tag--actual {
+  color: #ffcc80;
+  background: rgba(255, 167, 38, 0.12);
+}
+.db-vbar-tag--budget {
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.12);
+}
+.db-vbar-track {
+  flex: 1;
+  width: 28px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
+}
+.db-vbar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.db-vbar-fill::after {
+  /* เส้นขีดบาง ๆ บนยอดแท่ง ให้ความรู้สึกเหมือนมาตรวัดจริง ไม่ใช่แท่งทึบธรรมดา */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.db-vbar-fill--plan {
+  background: linear-gradient(180deg, #81c784, #388e3c);
+}
+.db-vbar-fill--actual {
+  background: linear-gradient(180deg, #ffcc80, #f57c00);
+}
+.db-vbar-fill--budget {
+  background: linear-gradient(180deg, #c4b5fd, #7c3aed);
+}
+.db-vbar-baseline-tick {
+  width: 1px;
+  height: 6px;
+  background: #607080;
+  margin-top: 2px;
+}
+.db-vbar-label {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+.db-simple-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.db-simple-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12.5px;
+}
+.db-simple-list-item--overdue {
+  background: rgba(249, 115, 22, 0.08);
+}
+.db-simple-list-item--ahead {
+  background: rgba(34, 197, 94, 0.08);
+}
+.db-sli-name {
+  flex: 1;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-sli-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.db-sli-meta--warn {
+  color: #f97316;
+  font-weight: 600;
+}
+.db-sli-meta--good {
+  color: #22c55e;
+  font-weight: 600;
+}
+.db-empty-hint {
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.db-note-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.db-note-add-row .db-form-inp {
+  flex: 1;
+}
+.db-note-item {
+  cursor: default;
+}
+.db-note-check {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.db-note-done {
+  text-decoration: line-through;
+  color: #64748b;
+}
+.db-note-del {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.db-note-del:hover {
+  color: #ef4444;
 }
 
 /* ============================================================
