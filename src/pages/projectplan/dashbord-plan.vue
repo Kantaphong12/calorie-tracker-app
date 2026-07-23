@@ -74,9 +74,15 @@
           </div>
           <!-- User -->
           <div class="db-user-chip" @click="showUserMenu = !showUserMenu">
-            <div class="db-user-avatar">วศ</div>
-            <span class="db-user-name">วศิน ภัทรโกวิท</span>
+            <div class="db-user-avatar">{{ currentUserInitials }}</div>
+            <span class="db-user-name">{{ currentUserName }}</span>
             <q-icon name="expand_more" size="0.8rem" color="grey-5" />
+
+            <div v-if="showUserMenu" class="db-user-menu" @click.stop>
+              <button class="db-user-menu-item db-user-menu-item--danger" @click="onLogout">
+                <q-icon name="logout" size="0.9rem" />ออกจากระบบ
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -961,6 +967,8 @@ import ProjectPlanning from './project-planning.vue';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const AUTH_TOKEN = localStorage.getItem('authToken');
+const currentUserName = localStorage.getItem('UserName') || 'ผู้ใช้งาน';
+const currentUserInitials = computed(() => currentUserName.slice(0, 2));
 // ============================================================
 // TYPES & INTERFACES
 // ============================================================
@@ -1609,6 +1617,9 @@ const kpiCards = computed<KpiCard[]>(() => {
       variant: 'blue',
       trend: `${done} เสร็จสมบูรณ์`,
       trendDir: 'flat',
+      action: () => {
+        projectFilter.value = 'all';
+      },
     },
     {
       id: 'delayed',
@@ -1672,6 +1683,12 @@ const navigate = (id: string): void => {
   activeNav.value = id;
   showNotifications.value = false;
   showUserMenu.value = false;
+};
+
+const onLogout = (): void => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('UserID');
+  window.location.reload();
 };
 
 const openProject = (proj: Project): void => {
@@ -3656,5 +3673,39 @@ onMounted(async () => {
   .db-user-name {
     display: none;
   }
+}
+.db-user-chip {
+  position: relative;
+}
+.db-user-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #0d1e30;
+  border: 1px solid rgba(79, 195, 247, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 50;
+}
+.db-user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: #c9d4e0;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.db-user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.db-user-menu-item--danger {
+  color: #ef5350;
 }
 </style>

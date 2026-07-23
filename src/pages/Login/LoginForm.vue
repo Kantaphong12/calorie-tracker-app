@@ -88,6 +88,7 @@ async function submitForm() {
       console.log(responseData);
       localStorage.setItem('authToken', responseData.token); // save token
       localStorage.setItem('UserID', responseData.user.id); // save token
+      localStorage.setItem('UserName', responseData.user.name);
 
       // UserID 1 (เจ้าของระบบ) เข้าหน้าเดิม (/calorie) ตามปกติ
       // คนอื่น (เช่นเพื่อนที่ demo ให้ดู) เด้งไปหน้า Planning dashboard เลย
